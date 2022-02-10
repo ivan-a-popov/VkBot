@@ -1,7 +1,7 @@
 from hashlib import sha256
 
-from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden, HTTPUnauthorized, HTTPNotImplemented
-from aiohttp_apispec import request_schema, querystring_schema, response_schema
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden, HTTPMethodNotAllowed
+from aiohttp_apispec import request_schema, response_schema
 from app.admin.schemas import AdminSchema
 from app.web.app import View
 from app.web.schemas import OkResponseSchema
@@ -23,7 +23,7 @@ class AdminLoginView(View):
         return json_response(data={"id": admin.id, "email": admin.email})
 
     async def get(self):
-        raise HTTPNotImplemented
+        raise HTTPMethodNotAllowed("get", "post")
 
 
 class AdminCurrentView(View):
