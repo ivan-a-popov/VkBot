@@ -3,5 +3,4 @@ venv/
 *__pycache__*
 .coverage
 .coveragerc
-.DS_store
 config.yml
