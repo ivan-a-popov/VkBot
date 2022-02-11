@@ -1,8 +1,9 @@
-from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden, HTTPMethodNotAllowed
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden, HTTPMethodNotAllowed, HTTPUnauthorized
 from aiohttp_apispec import request_schema, response_schema
 from aiohttp_session import new_session
 from app.admin.schemas import AdminSchema
 from app.web.app import View
+from app.web.mixins import AuthRequiredMixin
 from app.web.schemas import OkResponseSchema
 from app.web.utils import json_response
 
@@ -22,12 +23,20 @@ class AdminLoginView(View):
         admin_data = AdminSchema().dump(admin)
         session = await new_session(request=self.request)
         session["admin"] = admin_data
-        return json_response(data={"id": admin.id, "email": admin.email})
+        return json_response(data=admin_data)
 
     async def get(self):
         raise HTTPMethodNotAllowed("get", "post")
 
 
-class AdminCurrentView(View):
+# class AdminCurrentView(View):
+#     @response_schema(AdminSchema, 200)
+#     async def get(self):
+#         if self.request.admin:
+#             return json_response(data=AdminSchema().dump(self.request.admin))
+#         raise HTTPUnauthorized
+
+class AdminCurrentView(AuthRequiredMixin, View):
+    @response_schema(AdminSchema, 200)
     async def get(self):
-        raise NotImplementedError
+        return json_response(data=AdminSchema().dump(self.request.admin))
