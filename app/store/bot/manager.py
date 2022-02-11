@@ -1,5 +1,5 @@
 import typing
-
+from typing import List
 from app.store.vk_api.dataclasses import Update
 
 if typing.TYPE_CHECKING:
@@ -10,5 +10,5 @@ class BotManager:
     def __init__(self, app: "Application"):
         self.app = app
 
-    async def handle_updates(self, updates: list[Update]):
+    async def handle_updates(self, updates: List[Update]):
         raise NotImplementedError
