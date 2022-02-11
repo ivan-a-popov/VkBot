@@ -1,32 +1,75 @@
+from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound, HTTPBadRequest
+from aiohttp_apispec import request_schema, response_schema, querystring_schema
+
+from app.quiz.models import Answer
 from app.quiz.schemas import (
-    ThemeSchema,
+    ThemeSchema, ThemeListSchema, QuestionSchema, ListQuestionSchema, ThemeIdSchema,
 )
 from app.web.app import View
+from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
 
 
-# TODO: добавить проверку авторизации для этого View
-class ThemeAddView(View):
-    # TODO: добавить валидацию с помощью aiohttp-apispec и marshmallow-схем
+class ThemeAddView(AuthRequiredMixin, View):
+    @request_schema(ThemeSchema)
+    @response_schema(ThemeSchema)
     async def post(self):
-        title = (await self.request.json())[
-            "title"
-        ]  # TODO: заменить на self.data["title"] после внедрения валидации
-        # TODO: проверять, что не существует темы с таким же именем, отдавать 409 если существует
+        title = self.data["title"]
+        existing_theme = await self.store.quizzes.get_theme_by_title(title)
+        if existing_theme:
+            raise HTTPConflict
         theme = await self.store.quizzes.create_theme(title=title)
         return json_response(data=ThemeSchema().dump(theme))
 
 
-class ThemeListView(View):
+class ThemeListView(AuthRequiredMixin, View):
+    @response_schema(ThemeListSchema)
     async def get(self):
-        raise NotImplementedError
+        themes = await self.store.quizzes.list_themes()
+        return json_response(data=ThemeListSchema().dump({"themes": themes}))
 
 
-class QuestionAddView(View):
+class QuestionAddView(AuthRequiredMixin, View):
+    @request_schema(QuestionSchema)
+    @response_schema(QuestionSchema)
     async def post(self):
-        raise NotImplementedError
+        title = self.data["title"]
+        existing_question = await self.store.quizzes.get_question_by_title(title)
+        if existing_question:
+            raise HTTPConflict
+
+        theme_id = self.data["theme_id"]
+        theme = await self.store.quizzes.get_theme_by_id(id_=theme_id)
+        if not theme:
+            raise HTTPNotFound
+
+        if len(self.data["answers"]) < 2:
+            raise HTTPBadRequest
+
+        parsed_answers = []
+        correct = []
+        for answer in self.data["answers"]:
+            answer = Answer(title=answer["title"], is_correct=answer["is_correct"])
+            if answer.is_correct and True in correct:
+                raise HTTPBadRequest
+            correct.append(answer.is_correct)
+            parsed_answers.append(answer)
+
+        if not any(correct):
+            raise HTTPBadRequest
+
+        question = await self.store.quizzes.create_question(
+            title=title,
+            theme_id=theme_id,
+            answers=parsed_answers,
+        )
+        return json_response(data=QuestionSchema().dump(question))
 
 
-class QuestionListView(View):
+class QuestionListView(AuthRequiredMixin, View):
+    @querystring_schema(ThemeIdSchema)
+    @response_schema(ListQuestionSchema)
     async def get(self):
-        raise NotImplementedError
+        theme_id = self.query.get("theme_id")
+        questions = await self.store.quizzes.list_questions(theme_id=int(theme_id) if theme_id else None)
+        return json_response(data=ListQuestionSchema().dump({"questions": questions}))

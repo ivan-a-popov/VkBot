@@ -15,4 +15,6 @@ class Question:
 
 @dataclass
 class Answer:
-    pass
+    title: str
+    is_correct: bool
+
