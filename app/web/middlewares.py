@@ -25,7 +25,7 @@ HTTP_ERROR_CODES = {
     401: "unauthorized",
     403: "forbidden",
     404: "not_found",
-    405: "not_implemented",
+    405: "not_allowed",
     409: "conflict",
     500: "internal_server_error",
     501: "not_implemented"
