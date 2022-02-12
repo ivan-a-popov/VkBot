@@ -10,7 +10,10 @@ class Theme:
 
 @dataclass
 class Question:
-    pass
+    id: Optional[int]
+    title: str
+    theme_id: int
+    answers: list
 
 
 @dataclass
