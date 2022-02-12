@@ -1,4 +1,5 @@
-from asyncio import Task
+import asyncio
+from asyncio import Task, Future
 from typing import Optional
 
 from app.store import Store
@@ -10,13 +11,22 @@ class Poller:
         self.is_running = False
         self.poll_task: Optional[Task] = None
 
-    async def start(self):
-        # TODO: добавить asyncio Task на запуск poll
-        raise NotImplementedError
+    def _done_callback(self, result: Future):
+        if result.exception():
+            self.store.app.logger.exception("poller stopped with exception", exc_info=result.exception())
+        if self.is_running:
+            self.start()
+
+    def start(self):
+        self.poll_task = asyncio.create_task(self.poll())
+        self.poll_task.add_done_callback(self._done_callback)
+        self.is_running = True
 
     async def stop(self):
-        # TODO: gracefully завершить Poller
-        raise NotImplementedError
+        self.is_running = False
+        await self.poll_task
 
     async def poll(self):
-        raise NotImplementedError
+        while self.is_running:
+            updates = await self.store.vk_api.poll()
+            await self.store.bot_manager.handle_updates(updates)
