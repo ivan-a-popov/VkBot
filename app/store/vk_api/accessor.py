@@ -6,7 +6,7 @@ from aiohttp import TCPConnector
 from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
-from app.store.vk_api.dataclasses import Message, Update, UpdateObject
+from app.store.vk_api.dataclasses import Message, Update, UpdateObject, UpdateMessage
 from app.store.vk_api.poller import Poller
 
 if typing.TYPE_CHECKING:
@@ -22,7 +22,7 @@ class VkApiAccessor(BaseAccessor):
         self.key: Optional[str] = None
         self.server: Optional[str] = None
         self.poller: Optional[Poller] = None
-        self.ts: Optional[int] = None
+        self.ts: Optional[str] = None
 
     async def connect(self, app: "Application"):
         self.session = ClientSession(connector=TCPConnector(verify_ssl=False))
@@ -71,10 +71,10 @@ class VkApiAccessor(BaseAccessor):
                 host=self.server,
                 method="",
                 params={
-                    "act": "a check",
+                    "act": "a_check",
                     "key": self.key,
                     "ts": self.ts,
-                    "wait": 30,
+                    "wait": 25,
                 },
             )
         ) as resp:
@@ -87,10 +87,11 @@ class VkApiAccessor(BaseAccessor):
                 updates.append(
                     Update(
                         type=update["type"],
-                        object=UpdateObject(
+                        object=UpdateObject(message=UpdateMessage(
                             id=update["object"]["message"]["id"],
-                            user_id=update["object"]["message"]["peer_id"],
-                            body=update["object"]["message"]["text"],
+                            from_id=update["object"]["message"]["peer_id"],
+                            text=update["object"]["message"]["text"],
+                            ),
                         ),
                     )
                 )
